@@ -1,0 +1,83 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Shattered Cathedral - Iterations</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .controls { margin-bottom: 16px; }
+    .gallery { display:flex; flex-wrap:wrap; gap:12px; }
+    .item { width:220px; border:1px solid #ddd; padding:8px; border-radius:6px; }
+    .thumb { width:200px; height:112px; object-fit:cover; background:#111; display:block }
+    .meta { font-size:12px; margin-top:6px }
+    .btn { display:inline-block; margin-right:6px; padding:4px 8px; background:#2b6cff; color:#fff; text-decoration:none; border-radius:4px }
+    .btn.secondary { background:#666 }
+    .download { background:#1a9a4a }
+  </style>
+</head>
+<body>
+  <h1>Iterations: artifacts\iter</h1>
+
+  <div class="controls">
+    <strong id="selected-title">No selection</strong><br/>
+    <audio id="main-audio" controls preload="none" style="width:600px"></audio>
+    <div style="margin-top:8px">
+      <button id="play-btn" class="btn">Play</button>
+      <button id="pause-btn" class="btn secondary">Pause</button>
+      <button id="stop-btn" class="btn secondary">Stop</button>
+      <a id="download-current" class="btn download" href="#" download>Download WAV</a>
+    </div>
+  </div>
+
+  <div class="gallery">
+  
+  </div>
+
+  <script>
+    const mainAudio = document.getElementById('main-audio');
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const downloadCurrent = document.getElementById('download-current');
+    const selectedTitle = document.getElementById('selected-title');
+
+    function selectItem(el) {
+      const wav = el.dataset.wav;
+      const title = el.dataset.title || 'Selection';
+      selectedTitle.textContent = title;
+      if (wav) {
+        mainAudio.src = 'renders/' + wav;
+        downloadCurrent.href = 'renders/' + wav;
+        downloadCurrent.style.display = '';
+      } else {
+        mainAudio.removeAttribute('src');
+        downloadCurrent.href = '#';
+        downloadCurrent.style.display = 'none';
+      }
+      mainAudio.load();
+    }
+
+    document.querySelectorAll('.select-thumb').forEach(img => {
+      img.addEventListener('click', ev => selectItem(ev.currentTarget.parentElement));
+    });
+
+    document.querySelectorAll('.play-link').forEach(a => {
+      a.addEventListener('click', ev => {
+        ev.preventDefault();
+        const parent = ev.currentTarget.closest('.item');
+        selectItem(parent);
+        mainAudio.play();
+      });
+    });
+
+    playBtn.addEventListener('click', () => { mainAudio.play(); });
+    pauseBtn.addEventListener('click', () => { mainAudio.pause(); });
+    stopBtn.addEventListener('click', () => { mainAudio.pause(); mainAudio.currentTime = 0; });
+
+    // Preselect first item if exists
+    const first = document.querySelector('.item');
+    if (first) selectItem(first);
+  </script>
+</body>
+</html>
