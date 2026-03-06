@@ -1,56 +1,65 @@
-import sys, os
-# Try package imports first (when running as a module), then fall back to script-level imports.
-try:
-    from shattered_audio.shattered_engine import ShatteredEngine
-    from shattered_audio.shattered_configs import CONFIGS
-except Exception:
-    try:
-        from shattered_engine import ShatteredEngine
-        from shattered_configs import CONFIGS
-    except Exception:
-        # As a last resort, ensure project root is on sys.path and retry package import
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if project_root not in sys.path:
-            sys.path.insert(0, project_root)
-        from shattered_audio.shattered_engine import ShatteredEngine
-        from shattered_audio.shattered_configs import CONFIGS
-from os import path, makedirs
+"""Batch rendering orchestration.
+
+Spawns render_single.py as a subprocess for each artifact, using the Python 3.11
+interpreter (RENDER_PYTHON) that has pyo installed.
+"""
 import os
 import subprocess
 import sys
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from shattered_audio.log import get_logger
+from shattered_audio.shattered_configs import CONFIGS
 
-def _render_helper(cmd, out_path):
+log = get_logger("render_artifact")
+
+WAV_HEADER_SIZE = 44
+
+# The Python interpreter used for rendering (must have pyo installed).
+# Defaults to .venv311 relative to project root; override via RENDER_PYTHON env var.
+_project_root = Path(__file__).resolve().parent.parent
+RENDER_PYTHON = os.environ.get(
+    "RENDER_PYTHON",
+    str(_project_root / ".venv311" / "Scripts" / "python.exe"),
+)
+
+
+def _render_helper(cmd: list[str], out_path: Path) -> tuple[int, bool]:
     res = subprocess.run(cmd)
-    # Treat as success if output exists despite non-zero exit (pyo teardown quirk)
-    ok = (res.returncode == 0) or (path.exists(out_path) and path.getsize(out_path) > 44)
+    ok = (res.returncode == 0) or (out_path.exists() and out_path.stat().st_size > WAV_HEADER_SIZE)
     return res.returncode, ok
 
 
-def render_batch(artifact_selection, outdir="artifacts", play_audio=False, parallel=1,
-                 outfmt="wav", samprate=None, duration_override=None, bitdepth=None, verbose=False):
-    """Render a batch of artifacts.
-
-    artifact_selection: iterable of artifact keys, or single key string 'ALL'.
-    outdir: output directory for WAV files.
-    play_audio: if True, run helper with audio playback enabled.
-    parallel: number of worker threads to spawn helper processes concurrently.
-    """
+def render_batch(
+    artifact_selection,
+    outdir: str = "artifacts",
+    play_audio: bool = False,
+    parallel: int = 1,
+    outfmt: str = "wav",
+    samprate: int | None = None,
+    duration_override: float | None = None,
+    bitdepth: int | None = None,
+    verbose: bool = False,
+) -> dict[str, bool]:
+    """Render a batch of artifacts using subprocess workers."""
     if isinstance(artifact_selection, str) and artifact_selection.upper() == "ALL":
         names = list(CONFIGS.keys())
     else:
         names = list(artifact_selection)
 
-    makedirs(outdir, exist_ok=True)
+    out_dir = Path(outdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    tasks = []
+    render_script = str(_project_root / "shattered_audio" / "render_single.py")
+
+    tasks: list[tuple[str, list[str], Path]] = []
     for name in names:
         if name not in CONFIGS:
-            print(f"Artifact not found in configs library: {name}")
+            log.warning("Artifact not found in configs library: %s", name)
             continue
-        out_path = path.join(outdir, f"{name}.wav")
-        cmd = [sys.executable, path.join("shattered_audio", "render_single.py"), name, "--outdir", outdir]
+        out_path = out_dir / f"{name}.wav"
+        cmd = [RENDER_PYTHON, render_script, name, "--outdir", str(out_dir)]
         if play_audio:
             cmd.append("--play")
         if outfmt:
@@ -65,8 +74,8 @@ def render_batch(artifact_selection, outdir="artifacts", play_audio=False, paral
             cmd.append("--verbose")
         tasks.append((name, cmd, out_path))
 
-    results = {}
-    if parallel and parallel > 1:
+    results: dict[str, bool] = {}
+    if parallel > 1:
         with ThreadPoolExecutor(max_workers=parallel) as ex:
             future_map = {ex.submit(_render_helper, cmd, out_path): name for name, cmd, out_path in tasks}
             for fut in as_completed(future_map):
@@ -74,23 +83,18 @@ def render_batch(artifact_selection, outdir="artifacts", play_audio=False, paral
                 try:
                     returncode, ok = fut.result()
                 except Exception as e:
-                    print(f"Rendering {name} raised: {e}")
+                    log.error("Rendering %s raised: %s", name, e)
                     results[name] = False
                 else:
                     results[name] = ok
                     if not ok:
-                        print(f"Rendering failed for {name} (exit {returncode})")
+                        log.error("Rendering failed for %s (exit %d)", name, returncode)
     else:
         for name, cmd, out_path in tasks:
-            print(f"Spawning: {cmd}")
+            log.info("Spawning: %s", cmd)
             returncode, ok = _render_helper(cmd, out_path)
             results[name] = ok
             if not ok:
-                print(f"Rendering failed for {name} (exit {returncode})")
+                log.error("Rendering failed for %s (exit %d)", name, returncode)
 
     return results
-
-
-if __name__ == "__main__":
-    # Backwards-compatible quick run: render default single item
-    render_batch(["004_glass_ocean"], outdir="artifacts", play_audio=False, parallel=1)

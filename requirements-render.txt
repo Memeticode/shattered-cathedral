@@ -1,0 +1,4 @@
+# Audio rendering layer (Python 3.11 — .venv311)
+pyo==1.0.5
+wxpython==4.2.1
+numpy==2.4.2

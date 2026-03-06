@@ -1,5 +1,10 @@
 {
     "chat.tools.terminal.autoApprove": {
-        ".\\.venv311\\Scripts\\python.exe": true
-    }
+        ".\\.venv311\\Scripts\\python.exe": true,
+        ".\\.venv\\Scripts\\pip.exe": true,
+        ".\\.venv\\Scripts\\python.exe": true,
+        ".\\.venv311\\Scripts\\pip.exe": true,
+        "git commit": true
+    },
+    "python.analysis.diagnosticSeverityOverrides": {}
 }

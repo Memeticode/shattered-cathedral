@@ -1,41 +1,47 @@
-# Shattered Cathedral — Batch Rendering
+# Shattered Cathedral
 
-This project uses `pyo` to synthesize audio artifacts.
+Generative ambient audio synthesis with AI-directed iterative refinement.
 
-Quick setup (Windows PowerShell):
+## Quick Start
+
+**Prerequisites:** Python 3.11 (for audio rendering) and Python 3.14 (for orchestration).
 
 ```powershell
+# 1. Set up both environments
 py -3.11 -m venv .venv311
-.\.venv311\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-.\.venv311\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv311\Scripts\python.exe -m pip install -r requirements-render.txt
+
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# 2. Launch the live dashboard
+.\.venv\Scripts\python.exe -m tools.web_ui --live --outdir artifacts/demo
 ```
 
-Render examples (offline, no audio playback):
+Click **Start Session** in the browser to begin generating. Each iteration renders audio, analyzes it, critiques the melodic content, and evolves the composition.
+
+Works out of the box without an API key. Set `OPENAI_API_KEY` in `.env` for AI-directed generation.
+
+## Other Ways to Run
 
 ```powershell
-# Render specific artifacts (space-separated keys)
-.\.venv311\Scripts\python.exe -m shattered_audio.cli 005_the_swarm 006_abyssal_trench --outdir artifacts --parallel 2
+# Render a single artifact
+.\.venv311\Scripts\python.exe -m shattered_audio.cli 008_binaural_temple --outdir artifacts
 
-# Render all configs
-.\.venv311\Scripts\python.exe -m shattered_audio.cli ALL --outdir artifacts --parallel 4
-
-Advanced CLI flags
-
-- `--outfmt`: Output file format (currently only `wav`).
-- `--samprate`: Sample rate override (Hz).
-- `--duration`: Override artifact duration in seconds.
-- `--bitdepth`: Override output bitdepth/sample type.
-- `--parallel`: Number of helper processes to run in parallel.
-- `--play`: Play audio during rendering (opens audio device; not recommended for batch).
-- `--verbose`: Show more helper output.
-
-Example: render one artifact with overriden duration and sample rate:
-```powershell
-.\.venv311\Scripts\python.exe -m shattered_audio.cli 005_the_swarm --outdir artifacts --duration 10 --samprate 44100
-```
+# Automated iteration loop (CLI)
+.\.venv\Scripts\python.exe -m tools.iterative_loop --seed 008_binaural_temple --iterations 6 --outdir artifacts/iter --auto --visualize
 ```
 
-Notes
-- Use `--play` if you want the helper to open your audio device and play the render (not recommended for batch jobs).
-- If you encounter occasional non-zero helper exits but the WAV file exists, the main runner treats the artifact as successful as long as the file is present and non-empty. This is a known pyo native-cleanup quirk on some Windows setups.
-- `requirements.txt` contains the pinned packages used during development: `pyo==1.0.5`, `wxpython==4.2.1`, `numpy==2.4.2`.
+## Project Structure
+
+```
+shattered_audio/    Audio engine (Python 3.11, pyo)
+tools/              Orchestration, web UI, AI adapter (Python 3.14)
+artifacts/          Generated audio and visualizations
+```
+
+See [.docs/architecture.md](.docs/architecture.md) for full details.
+
+## License
+
+MIT - see [LICENSE](LICENSE).
