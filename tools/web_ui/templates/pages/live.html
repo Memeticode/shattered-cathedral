@@ -1,0 +1,90 @@
+<div id="page-live" class="page-section">
+  <div class="header">
+    <h1>Shattered Cathedral</h1>
+    <div class="header-right">
+      <div class="layout-toggle">
+        <button class="layout-btn" id="btn-layout-scroll" title="Scroll view">&#9776; Scroll</button>
+        <button class="layout-btn" id="btn-layout-page" title="Page view">&#9723; Page</button>
+      </div>
+      <span id="status" class="status">Ready</span>
+      <button class="header-btn" id="btn-open-modal">New Session</button>
+    </div>
+  </div>
+
+  <div class="session-bar" id="session-bar" style="display:none">
+    <div class="progress-bar">
+      <div id="progress-fill" class="fill" style="width:0%"></div>
+    </div>
+    <button id="btn-continue" class="continue-btn" style="display:none">Continue +N</button>
+    <button id="btn-stop" class="stop" style="display:none" disabled>Stop</button>
+  </div>
+
+  <div class="player-bar">
+    <audio id="audio-player" controls preload="none"></audio>
+  </div>
+
+  <div class="timeline" id="timeline">
+    <div class="welcome" id="welcome">
+      <h2>Ready to begin</h2>
+      <p>Click <strong>New Session</strong> to configure and start generating.</p>
+    </div>
+  </div>
+
+  <div class="page-nav" id="page-nav">
+    <button class="page-nav-arrow" id="nav-prev" disabled>&#8592;</button>
+    <span class="page-nav-counter" id="nav-counter"></span>
+    <div class="page-nav-dots" id="nav-dots"></div>
+    <button class="page-nav-arrow" id="nav-next" disabled>&#8594;</button>
+  </div>
+
+  <!-- Start / Continue modal -->
+  <div id="start-modal" class="modal-overlay" style="display:none">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="modal-title">Configure Session</h2>
+        <button id="modal-close" class="modal-close-btn">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-left">
+          <div id="seed-list" class="seed-list"></div>
+        </div>
+        <div class="modal-right">
+          <div class="preset-preview" id="preset-preview">
+            <div class="preview-title" id="preview-title"></div>
+            <div class="preview-tags" id="preview-tags"></div>
+            <div class="preview-desc" id="preview-desc"></div>
+          </div>
+          <div class="modal-params">
+            <label>AI Provider:
+              <select id="ai-provider" style="background:#1a1a2e;color:#ddd;border:1px solid #333;border-radius:4px;padding:4px 8px;font-size:13px">
+                <option value="anthropic" selected>Anthropic (Claude)</option>
+                <option value="openai">OpenAI</option>
+                <option value="local">Local evolution (no AI)</option>
+              </select>
+            </label>
+            <label>Iterations: <input id="iter-count" type="number" value="5" min="1" max="50"/></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <label>BPM: <input id="cfg-bpm" type="number" value="72" min="30" max="240"/></label>
+              <label>Measures: <input id="cfg-measures" type="number" value="8" min="1" max="64"/></label>
+              <label>Duration (s): <input id="duration" type="number" value="26.67" min="1" max="600" step="0.01"/></label>
+            </div>
+            <label><input type="checkbox" id="cb-visualize" checked/> Generate visualizations</label>
+            <label><input type="checkbox" id="cb-normalize"/> Normalize audio</label>
+            <label style="flex-direction:column;align-items:flex-start;gap:4px">
+              Creative direction:
+              <textarea id="user-prompt" rows="3" style="width:100%;background:#1a1a2e;color:#ddd;border:1px solid #333;border-radius:4px;padding:8px;font-size:13px;resize:vertical" placeholder="Describe your musical intent... e.g. 'Dark, minimal atmosphere with a slow haunting melody that builds tension'"></textarea>
+            </label>
+            <label style="flex-direction:column;align-items:flex-start;gap:4px">
+              Input config (optional, overrides seed):
+              <textarea id="input-config" rows="3" style="width:100%;background:#1a1a2e;color:#ddd;border:1px solid #333;border-radius:4px;padding:8px;font-family:'Cascadia Code',monospace;font-size:11px;resize:vertical" placeholder="Paste a JSON config here, or leave empty to use the selected seed..."></textarea>
+              <input type="file" id="input-config-file" accept=".json" style="font-size:12px;color:#888"/>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-start" class="btn-primary">Start Session</button>
+      </div>
+    </div>
+  </div>
+</div>

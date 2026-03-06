@@ -1,0 +1,27 @@
+<div id="page-playground" class="page-section">
+  <div class="pg-container">
+    <div class="pg-header">
+      <h2>Music Playground</h2>
+      <div class="pg-tabs">
+        <button class="pg-tab active" data-tab="visual" onclick="pgSwitchTab('visual')">Visual Controls</button>
+        <button class="pg-tab" data-tab="json" onclick="pgSwitchTab('json')">Raw JSON</button>
+      </div>
+      <div class="pg-actions">
+        <select id="pg-preset-select" onchange="pgLoadPreset(this.value)">
+          <option value="">-- Load Preset --</option>
+        </select>
+        <button id="pg-render-btn" class="pg-render-btn" onclick="pgRender()">Render</button>
+        <span id="pg-status" class="pg-status"></span>
+      </div>
+    </div>
+    <div id="pg-tab-visual" class="pg-tab-content active"></div>
+    <div id="pg-tab-json" class="pg-tab-content">
+      <textarea id="pg-json-textarea" class="pg-json-area" spellcheck="false"></textarea>
+    </div>
+    <div id="pg-player" class="pg-player" style="display:none">
+      <audio id="pg-audio" controls preload="auto"></audio>
+      <span id="pg-render-time" class="pg-status"></span>
+    </div>
+    <div id="pg-error" class="pg-error"></div>
+  </div>
+</div>

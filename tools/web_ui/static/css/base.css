@@ -1,0 +1,50 @@
+/* === Reset & body === */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #08080e; color: #d0d0d0; }
+
+/* === Sidebar === */
+.sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 200px; background: #0c0c16;
+           border-right: 1px solid #1a1a2a; z-index: 50; display: flex; flex-direction: column;
+           transition: width 0.2s ease; overflow: hidden; }
+.sidebar.collapsed { width: 48px; }
+.sidebar-toggle { background: none; border: none; color: #888; font-size: 20px; cursor: pointer;
+                  padding: 12px 14px; text-align: left; flex-shrink: 0; }
+.sidebar-toggle:hover { color: #ccc; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px;
+            color: #888; text-decoration: none; cursor: pointer; white-space: nowrap; font-size: 13px;
+            transition: background 0.15s, color 0.15s; }
+.nav-item:hover { background: #1a1a2e; color: #ccc; }
+.nav-item.active { background: #1a2a40; color: #8af; }
+.nav-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+.nav-label { transition: opacity 0.2s; }
+.sidebar.collapsed .nav-label { opacity: 0; pointer-events: none; }
+.sidebar-brand { padding: 14px 12px 6px; font-size: 11px; color: #555; text-transform: uppercase;
+                 letter-spacing: 1px; white-space: nowrap; }
+.sidebar.collapsed .sidebar-brand { opacity: 0; }
+
+.main-content { margin-left: 200px; transition: margin-left 0.2s ease; min-height: 100vh; }
+.sidebar.collapsed ~ .main-content { margin-left: 48px; }
+.page-section { display: none; }
+
+/* === Home page === */
+.home-container { max-width: 700px; margin: 0 auto; padding: 80px 24px; text-align: center; }
+.home-title { font-size: 32px; color: #8af; font-weight: 300; margin-bottom: 16px; }
+.home-subtitle { font-size: 15px; color: #888; line-height: 1.7; margin-bottom: 48px; max-width: 540px;
+                 margin-left: auto; margin-right: auto; }
+.home-cards { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+.home-card { background: #12121c; border: 1px solid #1e1e30; border-radius: 10px; padding: 28px 24px;
+             width: 280px; cursor: pointer; transition: border-color 0.2s, transform 0.15s; text-align: left; }
+.home-card:hover { border-color: #2b6cff; transform: translateY(-2px); }
+.home-card h3 { font-size: 16px; color: #8af; margin-bottom: 8px; font-weight: 500; }
+.home-card p { font-size: 13px; color: #888; line-height: 1.6; }
+
+/* === Shared card base === */
+.card { border-radius: 8px; margin-bottom: 12px; padding: 16px 20px;
+        border-left: 3px solid #333; animation: fadeIn 0.3s ease; }
+
+/* === Keyframes === */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.pulsing { animation: pulse 1.5s infinite; }

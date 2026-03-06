@@ -6,8 +6,16 @@ import os
 from chat.base import ChatClient
 from chat.openai_client import OpenAIChatClient
 from chat.anthropic_client import AnthropicChatClient
+from chat.prompts import PromptTemplate, render
 
-__all__ = ["ChatClient", "OpenAIChatClient", "AnthropicChatClient", "create_client"]
+__all__ = [
+    "ChatClient",
+    "OpenAIChatClient",
+    "AnthropicChatClient",
+    "PromptTemplate",
+    "create_client",
+    "render",
+]
 
 _PROVIDERS = {
     "openai": "_create_openai",

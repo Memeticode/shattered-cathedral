@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set rp = render_prefix|default("/renders/") %}
+{% block title %}Shattered Cathedral - Iterations{% endblock %}
+{% block head_css %}
+  <style>
+    body { font-family: sans-serif; margin: 20px; background: #0a0a0f; color: #e0e0e0; }
+    .controls { margin-bottom: 16px; }
+    .gallery { display:flex; flex-wrap:wrap; gap:12px; }
+    .item { width:220px; border:1px solid #333; padding:8px; border-radius:6px; background:#151520; }
+    .thumb { width:200px; height:112px; object-fit:cover; background:#111; display:block }
+    .meta { font-size:12px; margin-top:6px }
+    .btn { display:inline-block; margin-right:6px; padding:4px 8px; background:#2b6cff; color:#fff; text-decoration:none; border-radius:4px; cursor:pointer; border:none; font-size:13px; }
+    .btn.secondary { background:#444 }
+    .btn.download { background:#1a9a4a }
+    audio { width:600px; }
+  </style>
+{% endblock %}
+{% block body %}
+  <h1>Iterations: {{ path }}</h1>
+  <div class="controls">
+    <strong id="selected-title">No selection</strong><br/>
+    <audio id="main-audio" controls preload="none"></audio>
+    <div style="margin-top:8px">
+      <button id="play-btn" class="btn">Play</button>
+      <button id="pause-btn" class="btn secondary">Pause</button>
+      <button id="stop-btn" class="btn secondary">Stop</button>
+      <a id="download-current" class="btn download" href="#" download>Download WAV</a>
+    </div>
+  </div>
+  <div class="gallery">
+  {% for it in items %}
+    <div class="item" data-wav="{{ it.wav_name }}" data-title="Iteration {{ it.iteration }} &mdash; {{ it.time }}">
+      {% if it.png_name %}
+        <img class="thumb select-thumb" src="{{ rp }}{{ it.png_name }}" alt="viz"/>
+      {% else %}
+        <div style="width:200px;height:112px;background:#222;color:#555;display:flex;align-items:center;justify-content:center">No Image</div>
+      {% endif %}
+      <div class="meta">
+        <strong>Iteration {{ it.iteration }}</strong><br/>
+        {% if it.metrics %}<span>RMS={{ it.metrics.rms }} dBFS={{ it.metrics.dbfs }}</span><br/>{% endif %}
+        {% if it.commentary %}<div style="margin-top:4px"><b>Commentary:</b> {{ it.commentary }}</div>{% endif %}
+        {% if it.plan %}<div style="margin-top:4px"><b>Plan:</b> {{ it.plan }}</div>{% endif %}
+      </div>
+      <div style="margin-top:8px">
+        {% if it.wav_name %}
+          <a class="btn play-link" href="{{ rp }}{{ it.wav_name }}">Preview</a>
+          <a class="btn secondary" href="{{ rp }}{{ it.wav_name }}" download>DL</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+  <script>
+    const mainAudio = document.getElementById('main-audio');
+    function selectItem(el) {
+      const wav = el.dataset.wav, title = el.dataset.title || 'Selection';
+      document.getElementById('selected-title').textContent = title;
+      if (wav) {
+        mainAudio.src = '{{ rp }}' + wav;
+        document.getElementById('download-current').href = '{{ rp }}' + wav;
+      }
+      mainAudio.load();
+    }
+    document.querySelectorAll('.select-thumb').forEach(img =>
+      img.addEventListener('click', ev => selectItem(ev.currentTarget.parentElement)));
+    document.querySelectorAll('.play-link').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); selectItem(ev.currentTarget.closest('.item')); mainAudio.play(); });
+    });
+    document.getElementById('play-btn').addEventListener('click', () => mainAudio.play());
+    document.getElementById('pause-btn').addEventListener('click', () => mainAudio.pause());
+    document.getElementById('stop-btn').addEventListener('click', () => { mainAudio.pause(); mainAudio.currentTime = 0; });
+    const first = document.querySelector('.item');
+    if (first) selectItem(first);
+  </script>
+{% endblock %}
