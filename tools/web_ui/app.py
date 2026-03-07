@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import queue
+import struct as _struct
 import threading
 import time
+import wave as _wave
 from pathlib import Path
 
 from flask import (
@@ -90,7 +93,19 @@ def make_app(outdir: Path, live: bool = False) -> Flask:
 
             wav_path = renders_dir / f"{render_name}.wav"
             if wav_path.exists() and wav_path.stat().st_size > 44:
-                return jsonify({"status": "ok", "wav_url": f"/renders/{render_name}.wav"})
+                # Measure peak amplitude for diagnostics
+                peak_db = None
+                try:
+                    with _wave.open(str(wav_path), "rb") as wf:
+                        sw = wf.getsampwidth()
+                        raw = wf.readframes(wf.getnframes())
+                        if sw == 2:
+                            samples = _struct.unpack(f"<{len(raw)//2}h", raw)
+                            peak = max(abs(s) for s in samples) if samples else 0
+                            peak_db = round(20 * math.log10(peak / 32768) if peak > 0 else -100, 1)
+                except Exception:
+                    pass
+                return jsonify({"status": "ok", "wav_url": f"/renders/{render_name}.wav", "peak_db": peak_db})
             else:
                 stderr = result.stderr.decode(errors="replace")[-500:] if result.stderr else "unknown"
                 return jsonify({"status": "error", "error": f"Render failed: {stderr}"}), 500
@@ -100,6 +115,53 @@ def make_app(outdir: Path, live: bool = False) -> Flask:
         except Exception as e:
             cfg_path.unlink(missing_ok=True)
             return jsonify({"status": "error", "error": str(e)}), 500
+
+    @app.route("/api/playground/render-layer", methods=["POST"])
+    def api_render_layer():
+        import subprocess as _subprocess
+
+        from shattered_audio.render_artifact import RENDER_PYTHON
+
+        data = request.get_json(silent=True) or {}
+        layer_id = data.get("layer_id", "")
+        config = data.get("config")
+        if not config or not isinstance(config, dict):
+            return jsonify({"status": "error", "error": "Missing or invalid config"}), 400
+
+        renders_dir = outdir / "renders"
+        renders_dir.mkdir(parents=True, exist_ok=True)
+
+        render_name = f"layer_{layer_id}_{int(time.time())}"
+        cfg_path = outdir / f"{render_name}.json"
+        cfg_path.write_text(json.dumps(config, indent=2), encoding="utf8")
+
+        render_script = str(_PKG_DIR.parent.parent / "shattered_audio" / "render_single.py")
+        cmd = [
+            RENDER_PYTHON, render_script,
+            render_name,
+            "--config-file", str(cfg_path),
+            "--outdir", str(renders_dir),
+        ]
+
+        try:
+            result = _subprocess.run(cmd, timeout=120, capture_output=True)
+            cfg_path.unlink(missing_ok=True)
+
+            wav_path = renders_dir / f"{render_name}.wav"
+            if wav_path.exists() and wav_path.stat().st_size > 44:
+                return jsonify({"status": "ok", "wav_url": f"/renders/{render_name}.wav",
+                                "layer_id": layer_id})
+            else:
+                stderr = result.stderr.decode(errors="replace")[-500:] if result.stderr else "unknown"
+                return jsonify({"status": "error", "error": f"Render failed: {stderr}",
+                                "layer_id": layer_id}), 500
+        except _subprocess.TimeoutExpired:
+            cfg_path.unlink(missing_ok=True)
+            return jsonify({"status": "error", "error": "Render timed out (120s)",
+                            "layer_id": layer_id}), 504
+        except Exception as e:
+            cfg_path.unlink(missing_ok=True)
+            return jsonify({"status": "error", "error": str(e), "layer_id": layer_id}), 500
 
     if live and event_bus:
         _session_state: dict = {"thread": None, "session": None}

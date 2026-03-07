@@ -1,0 +1,668 @@
+/* ================================================================
+   DAW – Playground DAW layout & components
+   ================================================================ */
+
+/* --- main container --- */
+.daw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #0a0e14;
+  color: #ccc;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  position: relative;
+}
+
+/* ================================
+   Page Layout Sections
+   ================================ */
+.daw-title-header {
+  padding: 12px 16px 4px;
+  background: #0a0e14;
+  flex-shrink: 0;
+}
+.daw-title-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e0e0e0;
+  letter-spacing: 0.3px;
+}
+
+.daw-info-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 16px 8px;
+  flex-shrink: 0;
+}
+
+.daw-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #555;
+  padding: 8px 16px 4px;
+}
+
+.daw-arrangement-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.daw-mix-section,
+.daw-master-section {
+  border-top: 1px solid #1e2030;
+  flex-shrink: 0;
+}
+
+.section-placeholder {
+  font-size: 11px;
+  color: #444;
+  font-style: italic;
+  padding: 8px 16px;
+}
+
+/* ================================
+   Transport Bar
+   ================================ */
+.daw-transport-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #0e1018;
+  border-bottom: 1px solid #1e2030;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.daw-project-name-input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #e0e0e0;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 3px;
+  width: 180px;
+}
+.daw-project-name-input:hover { border-color: #333; }
+.daw-project-name-input:focus { border-color: #4af; outline: none; }
+.daw-description-input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #999;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  width: 220px;
+}
+.daw-description-input:hover { border-color: #333; }
+.daw-description-input:focus { border-color: #4af; outline: none; }
+
+.metronome-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+}
+.metronome-toggle input[type="checkbox"] { accent-color: #4af; }
+
+/* ================================
+   Transport Buttons (shared)
+   ================================ */
+.transport-btn {
+  background: #2b6cff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.transport-btn:hover { background: #3d7aff; }
+.transport-btn:active { background: #1d5ae0; }
+.transport-btn:disabled { opacity: 0.4; cursor: default; }
+.transport-btn-secondary {
+  background: #222;
+  border: 1px solid #333;
+}
+.transport-btn-secondary:hover { background: #2a2a2a; }
+
+.transport-play {
+  background: #1a8c3a;
+  font-size: 14px;
+  padding: 4px 10px;
+  line-height: 1;
+}
+.transport-play:hover { background: #22a648; }
+.transport-play:active { background: #147030; }
+.transport-playing { background: #c44; }
+.transport-playing:hover { background: #d55; }
+
+.transport-param {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #888;
+  font-size: 12px;
+}
+.transport-param input {
+  width: 54px;
+  background: #1a1a2e;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 3px 5px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.transport-status {
+  color: #888;
+  font-size: 12px;
+}
+.transport-status.rendering {
+  color: #4af;
+  animation: pulse 1.2s infinite;
+}
+
+#daw-preset-select {
+  background: #1a1a2e;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  max-width: 180px;
+}
+
+/* ================================
+   Layer Card Stack
+   ================================ */
+.daw-layer-stack {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* layer card */
+.layer-card {
+  background: #12141c;
+  border: 1px solid #1e2030;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.layer-card.selected { border-color: #4af; }
+.layer-card.muted { opacity: 0.4; }
+.layer-card.collapsed .layer-section { display: none; }
+
+.layer-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #0e1018;
+  border-bottom: 1px solid #1a1c28;
+}
+.layer-collapse-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.layer-collapse-btn:hover { color: #aaa; }
+
+.layer-icon {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.layer-name-input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ddd;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: 3px;
+  min-width: 0;
+}
+.layer-name-input:hover { border-color: #333; }
+.layer-name-input:focus { border-color: #4af; outline: none; }
+
+.layer-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.layer-sm-btn {
+  width: 22px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: #1a1a2e;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  line-height: 18px;
+  text-align: center;
+}
+.layer-sm-btn.active-solo { background: #cc2; color: #000; border-color: #cc2; }
+.layer-sm-btn.active-mute { background: #c44; color: #fff; border-color: #c44; }
+
+.layer-vol-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+.layer-vol-wrap input[type="range"] {
+  flex: 1;
+  height: 4px;
+  accent-color: #4af;
+}
+.layer-vol-val {
+  font-size: 10px;
+  color: #666;
+  width: 28px;
+  text-align: right;
+}
+
+.layer-remove-btn {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.layer-remove-btn:hover { color: #f44; }
+
+/* ================================
+   Layer Sections (collapsible)
+   ================================ */
+.layer-section {
+  border-top: 1px solid #1a1c28;
+}
+.layer-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #555;
+  user-select: none;
+}
+.layer-section-header:hover { color: #888; background: #14161e; }
+.section-arrow {
+  font-size: 8px;
+  color: inherit;
+  flex-shrink: 0;
+}
+.layer-section.collapsed .layer-section-body { display: none; }
+.layer-section-body { padding: 8px 10px; }
+
+/* piano roll within card (now inside keyboard section) */
+.layer-card-piano-wrap {
+  height: 280px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+}
+.layer-card-piano-wrap canvas {
+  display: block;
+}
+
+/* Keyboard section body needs no extra padding for piano wrap */
+.layer-section[data-section="keyboard"] .layer-section-body {
+  padding: 0;
+}
+
+/* ================================
+   Layer Params & Effects
+   ================================ */
+.layer-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.layer-param-row label {
+  color: #777;
+  flex-shrink: 0;
+}
+.layer-param-row input, .layer-param-row select {
+  width: 70px;
+  background: #1a1a2e;
+  color: #ddd;
+  border: 1px solid #282a36;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: right;
+}
+.layer-param-row input[type="checkbox"] {
+  width: auto;
+}
+
+/* effect rack */
+.layer-effects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fx-empty {
+  font-size: 10px;
+  color: #444;
+  font-style: italic;
+}
+.fx-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  background: #14161e;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.fx-label {
+  color: #8af;
+  font-weight: 600;
+  min-width: 40px;
+  font-size: 10px;
+}
+.fx-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  flex: 1;
+}
+.fx-param {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #666;
+  font-size: 10px;
+}
+.fx-param input {
+  width: 42px;
+  background: #1a1a2e;
+  color: #ccc;
+  border: 1px solid #282a36;
+  border-radius: 2px;
+  padding: 1px 3px;
+  font-size: 10px;
+  text-align: right;
+}
+.fx-remove {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.fx-remove:hover { color: #f44; }
+
+.layer-effect-add-btn {
+  margin-top: 4px;
+  background: none;
+  border: 1px dashed #333;
+  border-radius: 3px;
+  color: #555;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+.layer-effect-add-btn:hover { color: #4af; border-color: #4af; }
+
+/* add layer footer */
+.daw-layer-footer {
+  padding: 8px;
+  flex-shrink: 0;
+}
+.layer-add-btn {
+  background: #1a1a2e;
+  border: 1px dashed #333;
+  border-radius: 4px;
+  color: #888;
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+.layer-add-btn:hover { color: #4af; border-color: #4af; }
+
+/* ================================
+   Note Properties Panel
+   ================================ */
+.daw-note-props {
+  background: #12141c;
+  border-top: 1px solid #1e2030;
+  padding: 8px 14px;
+  flex-shrink: 0;
+}
+.note-props-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.note-prop-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.note-prop-group label {
+  color: #777;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.note-prop-group input {
+  width: 56px;
+  background: #1a1a2e;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 3px 5px;
+  font-size: 12px;
+  text-align: center;
+}
+.note-prop-group .note-name-display {
+  color: #4af;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 30px;
+}
+
+/* extension chips */
+.note-ext-chips {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.note-ext-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #1e2030;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #aaa;
+}
+.note-ext-chip .chip-remove {
+  cursor: pointer;
+  color: #666;
+  font-size: 12px;
+}
+.note-ext-chip .chip-remove:hover { color: #f44; }
+
+.note-ext-add-btn {
+  background: none;
+  border: 1px dashed #444;
+  border-radius: 10px;
+  color: #666;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.note-ext-add-btn:hover { color: #4af; border-color: #4af; }
+
+/* ================================
+   Audio Player
+   ================================ */
+.daw-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: #0e1018;
+  border-top: 1px solid #1e2030;
+  flex-shrink: 0;
+}
+.daw-player audio {
+  flex: 1;
+  height: 32px;
+  max-width: 600px;
+}
+
+/* ================================
+   Waveform / Spectrogram Analysis
+   ================================ */
+.daw-analysis {
+  background: #0a0c12;
+  border-top: 1px solid #1e2030;
+  flex-shrink: 0;
+}
+.analysis-header {
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.analysis-header select {
+  background: #1a1a2e;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+.analysis-canvases {
+  display: flex;
+  flex-direction: column;
+}
+.analysis-pane {
+  position: relative;
+  padding: 0 14px 6px;
+}
+.analysis-label {
+  position: absolute;
+  top: 2px;
+  left: 20px;
+  font-size: 10px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 1;
+}
+.analysis-pane canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 3px;
+  background: #080810;
+}
+
+/* ================================
+   JSON Overlay
+   ================================ */
+.daw-json-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+.daw-json-area {
+  flex: 1;
+  background: #0e1018;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: 'Cascadia Code', monospace;
+  font-size: 12px;
+  resize: none;
+}
+.daw-json-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+/* ================================
+   Error
+   ================================ */
+.daw-error {
+  color: #f44;
+  padding: 0 14px;
+  font-size: 12px;
+}
+.daw-error:empty { display: none; padding: 0; }
+
+/* ================================
+   Scrollbar styling
+   ================================ */
+.daw ::-webkit-scrollbar { width: 8px; height: 8px; }
+.daw ::-webkit-scrollbar-track { background: #0a0c12; }
+.daw ::-webkit-scrollbar-thumb { background: #2a2c38; border-radius: 4px; }
+.daw ::-webkit-scrollbar-thumb:hover { background: #3a3c48; }
+
+/* ================================
+   Animations
+   ================================ */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

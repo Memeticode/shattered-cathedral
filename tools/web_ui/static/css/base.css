@@ -26,6 +26,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #08080e; colo
 .main-content { margin-left: 200px; transition: margin-left 0.2s ease; min-height: 100vh; }
 .sidebar.collapsed ~ .main-content { margin-left: 48px; }
 .page-section { display: none; }
+#page-playground { height: 100vh; overflow: hidden; flex-direction: column; }
+#page-playground .daw { flex: 1; min-height: 0; }
 
 /* === Home page === */
 .home-container { max-width: 700px; margin: 0 auto; padding: 80px 24px; text-align: center; }

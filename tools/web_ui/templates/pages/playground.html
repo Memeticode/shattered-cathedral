@@ -1,27 +1,101 @@
 <div id="page-playground" class="page-section">
-  <div class="pg-container">
-    <div class="pg-header">
+  <div class="daw">
+
+    <!-- Title Header -->
+    <div class="daw-title-header">
       <h2>Music Playground</h2>
-      <div class="pg-tabs">
-        <button class="pg-tab active" data-tab="visual" onclick="pgSwitchTab('visual')">Visual Controls</button>
-        <button class="pg-tab" data-tab="json" onclick="pgSwitchTab('json')">Raw JSON</button>
-      </div>
-      <div class="pg-actions">
-        <select id="pg-preset-select" onchange="pgLoadPreset(this.value)">
+    </div>
+
+    <!-- Info Section -->
+    <div class="daw-info-section">
+      <input type="text" id="daw-project-name" placeholder="Project Name" value="Untitled" class="daw-project-name-input"/>
+      <input type="text" id="daw-description" placeholder="Description..." class="daw-description-input"/>
+    </div>
+
+    <!-- Arrangement Section -->
+    <div class="daw-arrangement-section">
+      <div class="daw-section-label">Arrangement</div>
+
+      <!-- Transport Bar -->
+      <div class="daw-transport-bar">
+        <label class="transport-param">BPM <input id="daw-bpm" type="number" value="72" min="30" max="240"/></label>
+        <label class="transport-param">Measures <input id="daw-measures" type="number" value="8" min="1" max="64"/></label>
+        <label class="metronome-toggle">
+          <input type="checkbox" id="daw-metronome"/>
+          Metronome
+        </label>
+        <select id="daw-preset-select">
           <option value="">-- Load Preset --</option>
         </select>
-        <button id="pg-render-btn" class="pg-render-btn" onclick="pgRender()">Render</button>
-        <span id="pg-status" class="pg-status"></span>
+        <button class="transport-btn transport-play" id="daw-play-all" title="Play/Stop">&#9654; Play</button>
+        <button class="transport-btn transport-btn-secondary" id="daw-export" title="Export config JSON">Export</button>
+        <button class="transport-btn transport-btn-secondary" id="daw-json-toggle" title="Toggle JSON view">{ }</button>
+        <span id="daw-status" class="transport-status">Ready</span>
+      </div>
+
+      <!-- Layer Card Stack -->
+      <div class="daw-layer-stack" id="daw-layer-stack">
+        <!-- Layer cards injected by daw-layers.js -->
+      </div>
+
+      <!-- Add Layer Footer -->
+      <div class="daw-layer-footer">
+        <button class="layer-add-btn" id="daw-add-layer" title="Add layer">+ Add Layer</button>
       </div>
     </div>
-    <div id="pg-tab-visual" class="pg-tab-content active"></div>
-    <div id="pg-tab-json" class="pg-tab-content">
-      <textarea id="pg-json-textarea" class="pg-json-area" spellcheck="false"></textarea>
+
+    <!-- Note properties panel -->
+    <div class="daw-note-props" id="daw-note-props" style="display:none">
+      <div class="note-props-inner" id="note-props-inner"></div>
     </div>
-    <div id="pg-player" class="pg-player" style="display:none">
-      <audio id="pg-audio" controls preload="auto"></audio>
-      <span id="pg-render-time" class="pg-status"></span>
+
+    <!-- Mix Section (placeholder) -->
+    <div class="daw-mix-section">
+      <div class="daw-section-label">Mix</div>
+      <div class="section-placeholder">Coming soon</div>
     </div>
-    <div id="pg-error" class="pg-error"></div>
+
+    <!-- Master Section (placeholder) -->
+    <div class="daw-master-section">
+      <div class="daw-section-label">Master</div>
+      <div class="section-placeholder">Coming soon</div>
+    </div>
+
+    <!-- Audio player (hidden, controlled by transport) -->
+    <div class="daw-player" id="daw-player" style="display:none">
+      <audio id="daw-audio" preload="auto"></audio>
+      <span id="daw-render-time" class="transport-status"></span>
+    </div>
+
+    <!-- Waveform / Spectrogram -->
+    <div class="daw-analysis" id="daw-analysis" style="display:none">
+      <div class="analysis-header">
+        <select id="daw-analysis-layer">
+          <option value="__all__">All Layers (Mix)</option>
+        </select>
+      </div>
+      <div class="analysis-canvases">
+        <div class="analysis-pane">
+          <span class="analysis-label">Waveform</span>
+          <canvas id="daw-waveform" width="800" height="100"></canvas>
+        </div>
+        <div class="analysis-pane">
+          <span class="analysis-label">Spectrogram</span>
+          <canvas id="daw-spectrogram" width="800" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON overlay -->
+    <div class="daw-json-overlay" id="daw-json-overlay" style="display:none">
+      <textarea id="daw-json-textarea" class="daw-json-area" spellcheck="false"></textarea>
+      <div class="daw-json-actions">
+        <button id="daw-json-apply" class="transport-btn">Apply JSON</button>
+        <button id="daw-json-close" class="transport-btn transport-btn-secondary">Close</button>
+      </div>
+    </div>
+
+    <!-- Error display -->
+    <div id="daw-error" class="daw-error"></div>
   </div>
 </div>

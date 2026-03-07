@@ -5,7 +5,7 @@ function navigate(page) {
   if (pages.indexOf(page) === -1) page = 'home';
   pages.forEach(function(p) {
     var el = document.getElementById('page-' + p);
-    if (el) el.style.display = (p === page) ? 'block' : 'none';
+    if (el) el.style.display = (p === page) ? (p === 'playground' ? 'flex' : 'block') : 'none';
   });
   document.querySelectorAll('.nav-item').forEach(function(a) {
     a.classList.toggle('active', a.dataset.page === page);
