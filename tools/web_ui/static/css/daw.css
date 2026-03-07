@@ -533,6 +533,15 @@
   font-size: 12px;
 }
 .note-ext-chip .chip-remove:hover { color: #f44; }
+.ext-curve-select {
+  background: #14161e;
+  color: #aaa;
+  border: 1px solid #333;
+  border-radius: 3px;
+  font-size: 10px;
+  padding: 1px 3px;
+  cursor: pointer;
+}
 
 .note-ext-add-btn {
   background: none;

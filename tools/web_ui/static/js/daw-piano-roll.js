@@ -114,6 +114,20 @@ const NotePreview = (() => {
   return { play, updatePitch, stop };
 })();
 
+/* --- Curve interpolation for slide extensions --- */
+const CURVE_TYPES = ['linear', 'ease-in', 'ease-out', 'ease-in-out'];
+
+function curveInterpolate(t, curve) {
+  t = Math.max(0, Math.min(1, t));
+  switch (curve) {
+    case 'linear':      return t;
+    case 'ease-in':     return t * t * t;
+    case 'ease-out':    return 1 - Math.pow(1 - t, 3);
+    case 'ease-in-out': return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    default:            return t;
+  }
+}
+
 function createPianoRoll(canvasEl, layerId) {
   /* --- constants --- */
   const KEY_W = 48;
@@ -158,6 +172,37 @@ function createPianoRoll(canvasEl, layerId) {
   function snapBeat(b) { return Math.round(b / SNAP) * SNAP; }
 
   function getLayer() { return DAW.getLayer(layerId); }
+
+  /* --- extension geometry computation --- */
+  function computeExtensionSegments(note) {
+    const segs = [];
+    let curX = beatToX(note.startBeat) + note.beats * beatWidth;
+    let curPitch = note.pitch;
+
+    for (let ei = 0; ei < (note.extensions || []).length; ei++) {
+      const ext = note.extensions[ei];
+      const segW = ext.beats * beatWidth;
+
+      if (ext.type === 'slide') {
+        segs.push({
+          extIndex: ei, type: 'slide', x: curX, width: segW,
+          fromPitch: curPitch, toPitch: ext.targetPitch,
+          fromY: pitchToY(curPitch), toY: pitchToY(ext.targetPitch),
+          curve: ext.curve || 'ease-in-out'
+        });
+        curPitch = ext.targetPitch;
+      } else if (ext.type === 'hold') {
+        segs.push({
+          extIndex: ei, type: 'hold', x: curX, width: segW,
+          pitch: curPitch, y: pitchToY(curPitch)
+        });
+      }
+      curX += segW;
+    }
+    segs._endX = curX;
+    segs._endPitch = curPitch;
+    return segs;
+  }
 
   /* --- init --- */
   function init() {
@@ -385,36 +430,73 @@ function createPianoRoll(canvasEl, layerId) {
         ctx.globalAlpha = 1;
       }
 
-      for (const ext of (n.extensions || [])) {
-        if (ext.type === 'slide') {
-          const endX = x + nw;
-          const targetY = pitchToY(ext.targetPitch) + cellH / 2;
-          const srcY = y + cellH / 2;
-          ctx.strokeStyle = '#f84';
-          ctx.lineWidth = 1.5;
+      // Draw extensions as filled ribbons
+      const segs = computeExtensionSegments(n);
+      for (const seg of segs) {
+        if (seg.type === 'slide') {
+          const steps = Math.max(8, Math.ceil(seg.width / 2));
+          const fromTop = seg.fromY + 1;
+          const fromBot = seg.fromY + cellH - 1;
+          const toTop = seg.toY + 1;
+          const toBot = seg.toY + cellH - 1;
+
+          ctx.globalAlpha = 0.3 + n.velocity * 0.4;
+          ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.moveTo(endX, srcY);
-          const cpx = endX + ext.beats * beatWidth * 0.5;
-          ctx.bezierCurveTo(cpx, srcY, cpx, targetY, endX + ext.beats * beatWidth, targetY);
-          ctx.stroke();
-          ctx.fillStyle = '#f84';
-          ctx.beginPath();
-          ctx.arc(endX + ext.beats * beatWidth, targetY, 2.5, 0, Math.PI * 2);
+          // Top edge left-to-right
+          for (let s = 0; s <= steps; s++) {
+            const t = s / steps;
+            const ct = curveInterpolate(t, seg.curve);
+            const px = seg.x + t * seg.width;
+            const py = fromTop + ct * (toTop - fromTop);
+            if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          // Bottom edge right-to-left
+          for (let s = steps; s >= 0; s--) {
+            const t = s / steps;
+            const ct = curveInterpolate(t, seg.curve);
+            const px = seg.x + t * seg.width;
+            const py = fromBot + ct * (toBot - fromBot);
+            ctx.lineTo(px, py);
+          }
+          ctx.closePath();
           ctx.fill();
-        }
-        if (ext.type === 'hold') {
-          const holdX = x + nw;
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = 0.3;
-          ctx.lineWidth = cellH - 4;
-          ctx.setLineDash([3, 3]);
-          ctx.beginPath();
-          ctx.moveTo(holdX, y + cellH / 2);
-          ctx.lineTo(holdX + ext.beats * beatWidth, y + cellH / 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
           ctx.globalAlpha = 1;
         }
+
+        if (seg.type === 'hold') {
+          ctx.globalAlpha = 0.25 + n.velocity * 0.3;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect(seg.x + 1, seg.y + 1, seg.width - 2, cellH - 2, 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          // Dashed center line to distinguish from note body
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(seg.x + 2, seg.y + cellH / 2);
+          ctx.lineTo(seg.x + seg.width - 2, seg.y + cellH / 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
+      // Hover icon: "+" at extension chain endpoint
+      if (isHovered || noteSelected) {
+        const iconX = segs._endX;
+        const iconY = pitchToY(segs._endPitch) + cellH / 2;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.arc(iconX, iconY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+', iconX, iconY);
+        ctx.textBaseline = 'alphabetic';
       }
 
       if (nw > 24) {
@@ -464,9 +546,42 @@ function createPianoRoll(canvasEl, layerId) {
       const y = pitchToY(n.pitch);
       const w = n.beats * beatWidth;
 
+      // Check note body
       if (mx >= x && mx <= x + w && my >= y && my <= y + cellH) {
         const nearRightEdge = mx >= x + w - RESIZE_ZONE;
-        return { noteIndex: i, resize: nearRightEdge };
+        return { noteIndex: i, resize: nearRightEdge, zone: 'body' };
+      }
+
+      // Check extension segments
+      const segs = computeExtensionSegments(n);
+      for (const seg of segs) {
+        if (seg.type === 'hold') {
+          if (mx >= seg.x && mx <= seg.x + seg.width &&
+              my >= seg.y && my <= seg.y + cellH) {
+            return { noteIndex: i, resize: false, zone: 'extension',
+                     extIndex: seg.extIndex, extType: 'hold' };
+          }
+        }
+        if (seg.type === 'slide') {
+          if (mx >= seg.x && mx <= seg.x + seg.width) {
+            const t = (mx - seg.x) / seg.width;
+            const ct = curveInterpolate(t, seg.curve);
+            const topY = (seg.fromY + 1) + ct * (seg.toY + 1 - seg.fromY - 1);
+            const botY = topY + cellH - 2;
+            if (my >= topY && my <= botY) {
+              return { noteIndex: i, resize: false, zone: 'extension',
+                       extIndex: seg.extIndex, extType: 'slide' };
+            }
+          }
+        }
+      }
+
+      // Check "+" icon at chain endpoint
+      const iconX = segs._endX;
+      const iconY = pitchToY(segs._endPitch) + cellH / 2;
+      const dist = Math.sqrt((mx - iconX) ** 2 + (my - iconY) ** 2);
+      if (dist <= 7) {
+        return { noteIndex: i, resize: false, zone: 'add-extension' };
       }
     }
     return null;
@@ -505,6 +620,11 @@ function createPianoRoll(canvasEl, layerId) {
 
     const hit = hitTest(mx, my);
     const layer = getLayer();
+
+    if (hit && hit.zone === 'add-extension') {
+      showExtensionAddMenu(e, layer.notes[hit.noteIndex], hit.noteIndex);
+      return;
+    }
 
     if (hit) {
       const n = layer.notes[hit.noteIndex];
@@ -634,7 +754,13 @@ function createPianoRoll(canvasEl, layerId) {
     const prevHovered = hoveredNote;
     hoveredNote = hit;
     if (mx >= gridLeft()) {
-      canvas.style.cursor = hit ? (hit.resize ? 'ew-resize' : 'grab') : 'crosshair';
+      if (hit && (hit.zone === 'add-extension' || hit.zone === 'extension')) {
+        canvas.style.cursor = 'pointer';
+      } else if (hit) {
+        canvas.style.cursor = hit.resize ? 'ew-resize' : 'grab';
+      } else {
+        canvas.style.cursor = 'crosshair';
+      }
     }
     if (hoveredNote !== prevHovered || hoveredKeyPitch !== prevKey) render();
   }
@@ -710,7 +836,30 @@ function createPianoRoll(canvasEl, layerId) {
 
     // Build menu items
     const items = [];
-    if (hit) {
+    if (hit && hit.zone === 'extension') {
+      const layer = getLayer();
+      const n = layer?.notes[hit.noteIndex];
+      if (n && hit.extType === 'slide') {
+        const ext = n.extensions[hit.extIndex];
+        for (const curveType of CURVE_TYPES) {
+          items.push({
+            label: `Curve: ${curveType}` + (ext.curve === curveType ? ' \u2713' : ''),
+            action: () => {
+              ext.curve = curveType;
+              DAW.notify('notes');
+            }
+          });
+        }
+        items.push({ separator: true });
+      }
+      items.push({
+        label: 'Remove extension',
+        action: () => {
+          n.extensions.splice(hit.extIndex, 1);
+          DAW.notify('notes');
+        }
+      });
+    } else if (hit) {
       const layer = getLayer();
       const n = layer?.notes[hit.noteIndex];
       // Auto-select the right-clicked note
@@ -830,6 +979,66 @@ function createPianoRoll(canvasEl, layerId) {
     if (ctxMenu && !ctxMenu.contains(e.target)) {
       hideContextMenu();
     }
+  }
+
+  function showExtensionAddMenu(e, note, noteIndex) {
+    hideContextMenu();
+    const segs = computeExtensionSegments(note);
+    const endPitch = segs._endPitch;
+
+    const items = [
+      {
+        label: 'Add Slide (down)',
+        action: () => {
+          if (!note.extensions) note.extensions = [];
+          note.extensions.push({
+            type: 'slide', targetPitch: Math.max(MIN_PITCH, endPitch - 2),
+            beats: 0.5, curve: 'ease-in-out'
+          });
+          DAW.notify('notes');
+        }
+      },
+      {
+        label: 'Add Slide (up)',
+        action: () => {
+          if (!note.extensions) note.extensions = [];
+          note.extensions.push({
+            type: 'slide', targetPitch: Math.min(MAX_PITCH - 1, endPitch + 2),
+            beats: 0.5, curve: 'ease-in-out'
+          });
+          DAW.notify('notes');
+        }
+      },
+      {
+        label: 'Add Hold',
+        action: () => {
+          if (!note.extensions) note.extensions = [];
+          note.extensions.push({ type: 'hold', beats: 1 });
+          DAW.notify('notes');
+        }
+      }
+    ];
+
+    ctxMenu = document.createElement('div');
+    ctxMenu.style.cssText = `
+      position: fixed; left: ${e.clientX}px; top: ${e.clientY}px;
+      background: #1e2030; border: 1px solid #333; border-radius: 6px;
+      padding: 4px 0; min-width: 140px; z-index: 9999;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5); font: 12px system-ui; color: #ccc;
+    `;
+    for (const item of items) {
+      const row = document.createElement('div');
+      row.textContent = item.label;
+      row.style.cssText = 'padding: 6px 14px; cursor: pointer;';
+      row.addEventListener('mouseenter', () => row.style.background = '#2a2c48');
+      row.addEventListener('mouseleave', () => row.style.background = 'transparent');
+      row.addEventListener('click', () => { item.action(); hideContextMenu(); });
+      ctxMenu.appendChild(row);
+    }
+    document.body.appendChild(ctxMenu);
+    setTimeout(() => {
+      document.addEventListener('mousedown', _ctxOutsideClick, { once: true });
+    }, 0);
   }
 
   function hideContextMenu() {

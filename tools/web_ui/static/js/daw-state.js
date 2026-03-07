@@ -139,7 +139,7 @@ const DAW = {
     if (!layer) return;
     layer.notes.push({
       pitch: 60, startBeat: 0, beats: 1, velocity: 0.7,
-      brightness: 0.5, vibrato: 0, extensions: [],
+      brightness: 0.5, vibrato: 0, extensions: [], delay: null,
       ...note
     });
     layer.notes.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch);
@@ -237,14 +237,26 @@ const DAW = {
       };
       if (n.brightness != null && n.brightness !== layer.defaultBrightness) en.brightness = n.brightness;
       if (n.vibrato) en.vibrato = n.vibrato;
-      for (const ext of (n.extensions || [])) {
-        if (ext.type === 'slide') {
-          en.slide_to = ext.targetPitch;
-          en.slide_beats = ext.beats;
+      const exts = n.extensions || [];
+      if (exts.length > 0) {
+        en.extensions = exts.map(ext => {
+          if (ext.type === 'slide') {
+            return { type: 'slide', target_pitch: ext.targetPitch, beats: ext.beats, curve: ext.curve || 'ease-in-out' };
+          }
+          if (ext.type === 'hold') {
+            return { type: 'hold', beats: ext.beats };
+          }
+          return ext;
+        });
+        // Backward compat: also emit slide_to/slide_beats for first slide
+        const firstSlide = exts.find(e => e.type === 'slide');
+        if (firstSlide) {
+          en.slide_to = firstSlide.targetPitch;
+          en.slide_beats = firstSlide.beats;
         }
-        if (ext.type === 'hold') {
-          en.beats = (en.beats || n.beats) + ext.beats;
-        }
+      }
+      if (n.delay) {
+        en.delay = { time: n.delay.time, feedback: n.delay.feedback, mix: n.delay.mix };
       }
       return en;
     });
@@ -303,10 +315,24 @@ const DAW = {
           velocity: n.velocity ?? 0.7,
           brightness: n.brightness ?? layer.defaultBrightness,
           vibrato: n.vibrato ?? 0,
-          extensions: []
+          extensions: [],
+          delay: null
         };
-        if (n.slide_to != null) {
-          note.extensions.push({ type: 'slide', targetPitch: n.slide_to, beats: n.slide_beats || 0.5 });
+        if (n.extensions && Array.isArray(n.extensions)) {
+          note.extensions = n.extensions.map(ext => {
+            if (ext.type === 'slide') {
+              return { type: 'slide', targetPitch: ext.target_pitch, beats: ext.beats || 0.5, curve: ext.curve || 'ease-in-out' };
+            }
+            if (ext.type === 'hold') {
+              return { type: 'hold', beats: ext.beats || 1 };
+            }
+            return ext;
+          });
+        } else if (n.slide_to != null) {
+          note.extensions.push({ type: 'slide', targetPitch: n.slide_to, beats: n.slide_beats || 0.5, curve: 'ease-in-out' });
+        }
+        if (n.delay) {
+          note.delay = { time: n.delay.time || 0.3, feedback: n.delay.feedback || 0.4, mix: n.delay.mix || 0.3 };
         }
         layer.notes.push(note);
         beat = note.startBeat + (n.beats || 1);

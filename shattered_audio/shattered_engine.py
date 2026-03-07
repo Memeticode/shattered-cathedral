@@ -59,8 +59,12 @@ class ShatteredEngine:
             decay       - ring-out in beats (default from layer)
             brightness  - filter cutoff scalar 0-1 (default from layer)
             vibrato     - vibrato depth in semitones (default 0)
-            slide_to    - target MIDI note for glissando (optional)
-            slide_beats - glide duration in beats (optional, requires slide_to)
+            extensions  - list of chained extensions (optional):
+                          [{"type":"slide","target_pitch":64,"beats":1,"curve":"ease-out"},
+                           {"type":"hold","beats":0.5}]
+            slide_to    - legacy: target MIDI note for glissando (optional)
+            slide_beats - legacy: glide duration in beats (optional)
+            delay       - per-note echo: {"time":0.3,"feedback":0.4,"mix":0.3} (optional)
         """
         notes = layer.get("notes", [])
         if not notes:
@@ -95,14 +99,22 @@ class ShatteredEngine:
             decay_beats = float(n.get("decay", default_decay))
             brightness = float(n.get("brightness", default_brightness))
             vibrato_depth = float(n.get("vibrato", 0))
-            slide_to = n.get("slide_to")
-            slide_beats = float(n.get("slide_beats", 0)) if slide_to is not None else 0
+            start_time = cursor
+
+            # Build extensions chain (new format or legacy fallback)
+            extensions = n.get("extensions", [])
+            if not extensions and n.get("slide_to") is not None:
+                extensions = [{
+                    "type": "slide",
+                    "target_pitch": n["slide_to"],
+                    "beats": float(n.get("slide_beats", 0)),
+                    "curve": "ease-in-out"
+                }]
 
             hold_dur = beats_n * beat
-            slide_dur = slide_beats * beat
-            note_total = hold_dur + slide_dur
+            ext_total_dur = sum(float(e.get("beats", 0)) * beat for e in extensions)
+            note_total = hold_dur + ext_total_dur
             decay_dur = decay_beats * beat
-            start_time = cursor
 
             # Per-note amplitude envelope: plays immediately, delayed in output
             note_env = self.keep(
@@ -110,20 +122,38 @@ class ShatteredEngine:
                       dur=note_total + decay_dur, mul=velocity).play()
             )
 
-            # Frequency with optional slide
+            # Frequency: build chain of holds and slides
             freq_hold = _mtof(pitch)
-            if slide_to is not None and slide_dur > 0:
-                freq_target = _mtof(slide_to)
-                # Use SigTo for smooth glide starting after hold_dur
+            if extensions:
                 freq_sig = self.keep(Sig(freq_hold))
-                # Schedule frequency change (approximate: ramp over slide_dur)
                 freq_sig_smooth = self.keep(
-                    SigTo(freq_sig, time=slide_dur, init=freq_hold)
+                    SigTo(freq_sig, time=0.01, init=freq_hold)
                 )
-                # Use CallAfter to trigger the slide at the right time
-                def _set_freq(sig=freq_sig, target=freq_target):
-                    sig.value = target
-                self.keep(CallAfter(_set_freq, hold_dur))
+                ext_offset = hold_dur
+                for ext in extensions:
+                    ext_type = ext.get("type")
+                    ext_dur = float(ext.get("beats", 0)) * beat
+                    if ext_type == "slide" and ext_dur > 0:
+                        target_pitch = float(ext.get("target_pitch", pitch))
+                        freq_target = _mtof(target_pitch)
+                        curve = ext.get("curve", "ease-in-out")
+                        # Vary SigTo time to approximate curve shape
+                        if curve == "linear":
+                            ramp_time = ext_dur * 0.8
+                        elif curve == "ease-in":
+                            ramp_time = ext_dur * 1.2
+                        elif curve == "ease-out":
+                            ramp_time = ext_dur * 0.6
+                        else:  # ease-in-out
+                            ramp_time = ext_dur
+                        freq_sig_smooth = self.keep(
+                            SigTo(freq_sig, time=ramp_time, init=freq_hold)
+                        )
+                        def _set_freq(sig=freq_sig, target=freq_target):
+                            sig.value = target
+                        self.keep(CallAfter(_set_freq, ext_offset))
+                    # hold: frequency stays the same, no action needed
+                    ext_offset += ext_dur
                 final_freq = freq_sig_smooth
             else:
                 final_freq = freq_hold
@@ -150,6 +180,17 @@ class ShatteredEngine:
             cutoff = 200 + brightness * 7800
             filtered = self.keep(MoogLP(osc, freq=cutoff, res=0.3))
 
+            # Note-level delay (echo effect)
+            note_delay_cfg = n.get("delay")
+            if note_delay_cfg:
+                delay_time_sec = float(note_delay_cfg.get("time", 0.3)) * beat
+                delay_feedback = min(0.95, float(note_delay_cfg.get("feedback", 0.4)))
+                delay_mix = float(note_delay_cfg.get("mix", 0.3))
+                wet = self.keep(Delay(filtered, delay=delay_time_sec,
+                                      feedback=delay_feedback,
+                                      maxdelay=delay_time_sec + 0.1))
+                filtered = filtered * (1 - delay_mix) + wet * delay_mix
+
             # Time-shift the note to its start position
             if start_time > 0.001:
                 note_out = self.keep(Delay(filtered, delay=start_time,
@@ -160,7 +201,7 @@ class ShatteredEngine:
             mix = mix + note_out
 
             if not has_start_beat:
-                cursor += hold_dur + slide_dur
+                cursor += note_total
 
         # Apply overall layer envelope
         if mix:
